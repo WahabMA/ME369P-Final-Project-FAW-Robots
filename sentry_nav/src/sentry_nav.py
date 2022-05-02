@@ -31,7 +31,7 @@ speed = Twist()
 r = rospy.Rate(50)
 
 goal = Point()
-goal.x = 5
+goal.x = 4
 goal.y = 5
 
 while True:
