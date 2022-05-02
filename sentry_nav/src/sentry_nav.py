@@ -23,16 +23,14 @@ def newOdom(msg):
     
 rospy.init_node('test')
 
-sub = rospy.Subscriber("/odom",Odometry,newOdom)
-pub = rospy.Publisher('/cmd_vel',Twist,queue_size=1)
+sub = rospy.Subscriber("/spy/odom",Odometry,newOdom)
+pub = rospy.Publisher('/spy/cmd_vel',Twist,queue_size=1)
 
 speed = Twist()
 
 r = rospy.Rate(50)
 
-goal = Point()
-goal.x = 4
-goal.y = 5
+goal = Point(4,5,0)
 
 while True:
     inc_x = goal.x - x
@@ -51,8 +49,6 @@ while True:
     else:
         speed.linear.x = 0.1
         speed.angular.z = 0.0
-    print(inc_x)
-    print(x)
     
         
     pub.publish(speed)
