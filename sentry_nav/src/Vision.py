@@ -75,7 +75,7 @@ def set_grid(grid):
 
         ob_fpos = [ob_x,ob_y]
 
-        pub = rospy.Publisher('Obstacles', int32[] , queue_size=10)
+        pub = rospy.Publisher('obstacles', int32[] , queue_size=10)
 
         pub.publish(ob_fpos)
     
