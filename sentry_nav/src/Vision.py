@@ -54,7 +54,7 @@ def set_grid(grid):
     # populates the grid with the model positions. Models need to be defined later
 
     # sentry model - first object in simulation
-    sen_pos = get_pos(models(1),links(1)(0))
+    sen_pos = get_pos(models(2),links(2)(0))
     sen_x = np.floor(sen_pos[0])
     sen_y = np.floor(sen_pos[1])
     grid[sen_x][sen_y] = 's'
