@@ -7,6 +7,7 @@ import numpy as np
 # import sys
 
 import rospy
+from std_msgs.msg import String
 from gazebo.srv import *
 
 def get_pos(model_name, relative_entity_name):
@@ -66,11 +67,17 @@ def set_grid(grid):
     grid[play_x][play_y] = 'p'
     
     # variable numbers of obstacles. Any models in the simulation after the first two
-    for ob in range(2,len(models))
+    for ob in range(3,len(models))
         ob_pos = get_pos(models(ob),links(ob)(0))
         ob_x = np.floor(ob_pos[0])
         ob_y = np.floor(ob_pos[1])
         grid[ob_x][ob_y] = 'b'
+
+        ob_fpos = [ob_x,ob_y]
+
+        pub = rospy.Publisher('Obstacles', int32[] , queue_size=10)
+
+        pub.publish(ob_fpos)
     
     return grid
 
@@ -112,12 +119,15 @@ def detection(grid):
 
 def turn():
     # generates outcomes at the end of a turn in the game
+    rospy.init_node('Vision')
+
     grid = gen_grid(8)
     grid = set_grid(grid)
     outcome = detection(grid)
 
-    rospy.init_node('Vision')
+    pub = rospy.Publisher('Status', String, queue_size=10)
 
-    pub = rospy.Publisher('Status', std_msgs.msg.String, queue_size=10)
+    pub.publish(outcome)
 
-    pub.publish(std_msgs.msg.String(outcome))
+if __name__ == '__main__':
+    turn()
