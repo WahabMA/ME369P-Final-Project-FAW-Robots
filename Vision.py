@@ -17,8 +17,8 @@ def get_pos(model):
         y = pos.pose.position.y
         coord = [x,y]
         return coord
-    except rospy.ServiceException, e:
-        print("Service call failed %s"%e)        
+    except rospy.ServiceException:
+        print("Service call failed")        
         
 def gen_grid(size):
     # creates blank grid as a list
@@ -29,7 +29,7 @@ def gen_grid(size):
     return grid
     
 def set_grid(grid):
-    # populates the grid with the model positions
+    # populates the grid with the model positions. Models need to be defined later
     sen_pos = get_pos(sentry)
     sen_x = np.floor(sen_pos[0])
     sen_y = np.floor(sen_pos[1])
@@ -74,9 +74,9 @@ def detection(grid):
             if grid[x][y] == 'b':
                 ob_x.append(x)
                 ob_y.append(y)
-    if sen_x == play_x and !(sen_x in ob_x):
+    if sen_x == play_x and not (sen_x in ob_x):
         return 'Caught!'
-    if sen_y == play_y and !(sen_y in ob_y):
+    if sen_y == play_y and not (sen_y in ob_y):
         return 'Caught!'
     if sen_x == play_x:
         for pos in ob_x:
@@ -101,6 +101,3 @@ if __name__ == '__main__':
     outcome = detection(grid)
     if outcome in 'Caught!':
         print('You have been caught!')
-        break
-    else:
-        continue   
