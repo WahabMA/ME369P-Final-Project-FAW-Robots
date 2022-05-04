@@ -9,6 +9,8 @@ project(sentry_nav)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
+  roslib
+  gazebo_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -45,9 +47,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   Vision.msg
 #   Message2.msg
 # )
 
@@ -104,7 +106,9 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sentry_nav
 #  CATKIN_DEPENDS rospy
-#  DEPENDS system_lib
+  DEPENDS system_lib
+    rospy
+    gazebo_ros
 )
 
 ###########
@@ -114,8 +118,10 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+ include
+  ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${GAZEBO_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
