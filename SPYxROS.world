@@ -23,6 +23,9 @@
        <pose>-1 8 -1.5 0 0 3.14</pose>
     </include>
     
+    <physics type='ode'>
+       <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
    
 
     <physics type="ode">
