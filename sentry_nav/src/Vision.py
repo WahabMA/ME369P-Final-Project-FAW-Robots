@@ -67,7 +67,7 @@ def set_grid(grid):
     grid[play_x][play_y] = 'p'
     
     # variable numbers of obstacles. Any models in the simulation after the first two
-    for ob in range(3,len(models))
+    for ob in range(3,len(models)):
         ob_pos = get_pos(models(ob),links(ob)(0))
         ob_x = np.floor(ob_pos[0])
         ob_y = np.floor(ob_pos[1])
@@ -75,9 +75,9 @@ def set_grid(grid):
 
         ob_fpos = [ob_x,ob_y]
 
-        pub = rospy.Publisher('obstacles', int32[] , queue_size=10)
+        pub = rospy.Publisher('obstacles', int32 , queue_size=10)
 
-        pub.publish(ob_fpos)
+        pub.publish(ob_x, ob_y)
     
     return grid
 
