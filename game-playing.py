@@ -1,26 +1,20 @@
 #!/usr/bin/env python
 
+import random
 import rospy
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Point, Twist
-from std_msgs.msg import String, Int32
+from std_msgs.msg import String
 from math import atan2
 import numpy as np
 import roslaunch 
 import sys
-import rospy
-from std_msgs.msg import String
-from turtle import position
-from nav_msgs.msg import Odometry
-
-from gazebo_msgs.msg import ModelStates
-global obpose
 
 spypose = Odometry()
 playerpose = Odometry()
-
-global caught
+obs_points=[]
+caught = 'dummy'
 
 def getSpyMsg(msg):
     global spypose
@@ -29,23 +23,68 @@ def getSpyMsg(msg):
 def getPlayerMsg(msg):
     global playerpose
     playerpose = msg
-
-def getObMsg(msg):
-    global obpose
-    obpose.append(msg)
-
+    
 def getMsgInfo(msg):
     x = msg.pose.pose.position.x
     y = msg.pose.pose.position.y
     
-    return x,y     
+    rot_q = msg.pose.pose.orientation
+    roll,pitch,theta = euler_from_quaternion([rot_q.x,rot_q.y,rot_q.z,rot_q.w])
+    return x,y,theta
         
+def setSpyTwist(pub,goal):
+    inc_x = 0
+    inc_y = 0
+    vel = Twist()
+    while not(0 < abs(inc_x) < 0.1) or not(0 < abs(inc_y) < 0.1):
+        x,y,theta = getMsgInfo(spypose)
+        # print(x,y)
+        inc_x = goal.x - x
+        inc_y = goal.y - y
+        angle_to_goal = atan2(inc_y,inc_x)
+        
+        if 0 < abs(inc_x) < 0.1 and 0 < abs(inc_y) < 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.0
+        elif angle_to_goal - theta > 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.2
+        elif angle_to_goal - theta < -0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = -0.2
+        else:
+            vel.linear.x = 0.3
+            vel.angular.z = 0.0
+        pub.publish(vel)
+        
+def setPlayerTwist(pub,goal):
+    inc_x = 0
+    inc_y = 0
+    vel = Twist()
+    while not(0 < abs(inc_x) < 0.1) or not(0 < abs(inc_y) < 0.1):
+        x,y,theta = getMsgInfo(playerpose)
+        # print(x,y)
+        inc_x = goal.x - x
+        inc_y = goal.y - y
+        angle_to_goal = atan2(inc_y,inc_x)
+        
+        if 0 < abs(inc_x) < 0.1 and 0 < abs(inc_y) < 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.0
+        elif angle_to_goal - theta > 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.2
+        elif angle_to_goal - theta < -0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = -0.2
+        else:
+            vel.linear.x = 0.3
+            vel.angular.z = 0.0
+        pub.publish(vel)
+
 def gen_grid(size):
     # creates blank grid as a list
-    grid = []
-    for x in range(size):
-        for y in range(size):
-            grid[x][y].append(0)
+    grid = np.zeros((size+1,size))
     return grid
     
 def set_grid(grid):
@@ -73,31 +112,29 @@ def set_grid(grid):
 
     # sentry model - first object in simulation
 #    sen_pos = get_pos(models(2),links(2)(0))
-    sen_x,sen_y = getMsgInfo(spypose)
-    sen_x = np.floor(sen_x)
-    sen_y = np.floor(sen_y)
-    grid[sen_x][sen_y] = 's'
+    sen_x,sen_y,temp = getMsgInfo(spypose)
+    sen_x = int(np.floor(sen_x))
+    sen_y = int(np.floor(sen_y))
+    grid[sen_x][sen_y] = '1'
 
     # player model - second object in sumulation
 #    play_pos = get_pos(models(0),links(0)(0))
-    play_x, play_y = getMsgInfo(playerpose)
-    play_x = np.floor(play_x)
-    play_y = np.floor(play_y)
-    grid[play_x][play_y] = 'p'
+    play_x, play_y,temp = getMsgInfo(playerpose)
+    play_x = int(np.floor(play_x))
+    play_y = int(np.floor(play_y))
+    grid[play_x][play_y] = '2'
 
     ob_x = []
     ob_y = []
 
-    for i in range(len(obpose)):
-        if i%2 == 0:
-            ob_x.append(obpose[i])
-        else:
-            ob_y.append(obpose[i])
+    for i in range(len(obs_points)):
+        ob_x.append(obs_points[i][0])
+        ob_y.append(obs_points[i][1])
 
     for i in range(len(ob_x)):
-        ob_x[i] = np.floor(ob_x[i])
-        ob_y[i] = np.floor(ob_y[i])
-        grid[ob_x[i]][ob_y[i]] = 'b'
+        ob_x[i] = int(np.floor(ob_x[i]))
+        ob_y[i] = int(np.floor(ob_y[i]))
+        grid[ob_x[i]][ob_y[i]] = '3'
     
     # variable numbers of obstacles. Any models in the simulation after the first two
  #   for ob in range(3,len(models)):
@@ -118,61 +155,59 @@ def detection(grid):
     # checks if player is detected our not, should be run once per turn
     ob_x = []
     ob_y = []
-    for x in grid:
-        for y in grid[0]:
-            if grid[x][y] == 's':
+    sen_x = -1
+    sen_y = -1
+    play_x = -2
+    play_y = -2
+    for x in range(len(grid)):
+        for y in range(len(grid[0])):
+            if grid[x][y] == 1:
                 sen_x = x
                 sen_y = y
-            if grid[x][y] == 'p':
+            if grid[x][y] == 2:
                 play_x = x
                 play_y = y
-            if grid[x][y] == 'b':
+            if grid[x][y] == 3:
                 ob_x.append(x)
                 ob_y.append(y)
-    if sen_x == play_x and not (sen_x in ob_x):
-        return 'Caught!'
+    # if sen_x == play_x and not (sen_x in ob_x):
+    #     return 'Caught!'
     if sen_y == play_y and not (sen_y in ob_y):
         return 'Caught!'
-    if sen_x == play_x:
-        for pos in ob_x:
-            if ob_x[pos] == sen_x:
-                if sen_y < play_y and ob_y[pos] > play_y:
-                    return 'Caught!'
-                if sen_y > play_y and ob_y[pos] < play_y:
-                    return 'Caught!'
+    # if sen_x == play_x:
+    #     for pos in range(len(ob_x)):
+    #         if ob_x[pos] == sen_x:
+    #             if sen_y < play_y and ob_y[pos] > play_y:
+    #                 return 'Caught!'
+    #             if sen_y > play_y and ob_y[pos] < play_y:
+    #                 return 'Caught!'
     if sen_y == play_y:
-        for pos in ob_y:
+        for pos in range(len(ob_y)):
             if ob_y[pos] == sen_y:
-                if sen_x < play_x and ob_x[pos] > play_x:
-                    return 'Caught!'
-                if sen_x > play_x and ob_y[pos] < play_x:
+                if sen_x > play_x and ob_x[pos] < play_x:
                     return 'Caught!'
             
     return 'Unseen'
 
 def turn():
     # generates outcomes at the end of a turn in the game
-    global obpose
-    rospy.init_node('Vision')
-    pub = rospy.Publisher('Status', String, queue_size=10)
+    # rospy.init_node('Vision')
+    pub = rospy.Publisher('/Status', String, queue_size=10,latch=True)
     rate = rospy.Rate(10) 
     # 10hz, rate at which messages are published 
-    obpose = []
-    while len(obpose) < 10:
-        obsub = rospy.Subscriber("Obstacle",np.Int32,getObMsg)
-        grid = gen_grid(8)
-        playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
-        spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
-        
-        grid = set_grid(grid)
-        outcome = detection(grid)
-        rospy.loginfo(outcome) 
-        pub.publish(outcome)
-        rate.sleep()
+    grid = gen_grid(8)
+    playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
+    spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
+    
+    grid = set_grid(grid)
+    outcome = detection(grid)
+    # rospy.loginfo(outcome)
+    pub.publish(outcome)
+    rate.sleep()
 
 def callback(data):
     global caught
-    caught = data
+    caught = data.data
             
 def main():
     
@@ -190,8 +225,8 @@ def main():
     sentryx=8.5
     current_sentry=[sentryx, sentryy]
 
-    obs_points=[]
-    a=[1,2,3,4,5,6,7] # x-values
+    global obs_points
+    a=[1,2,3,4,5,6,7]   # x-values
     b=[0,1,2,3,4,5,6,7] # y-values
 
     counter=1
@@ -214,8 +249,6 @@ def main():
     sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
     sys.stdout.write('\n')
     cli_args1=['my_wall_urdf','wall.launch']
-    
-    pub = rospy.Publisher("Obstacle",np.Int32, queue_size=10)
     while counter<6:
         x=np.random.choice(a)
         y=np.random.choice(b)
@@ -230,7 +263,6 @@ def main():
         b.remove(y)
         obs_points.append([x,y])
         counter+=1
-        pub.publish(x,y)
         
             
     roslaunch_args1=cli_args1[2:]
@@ -246,42 +278,88 @@ def main():
     sys.stdout.write('Good luck')
     sys.stdout.write('\n')
     usin = 'waiting'
+    rospy.init_node('game')
+    spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
+    spypub = rospy.Publisher('/spy/cmd_vel',Twist,queue_size=1)
+    playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
+    playerpub = rospy.Publisher('/player/cmd_vel',Twist,queue_size=1)
     
-    
+    spyvel = Twist()
+    playervel = Twist()
+    playerpose.pose.pose.position.x = 0.5
+    playerpose.pose.pose.position.y = playery
+    spypose.pose.pose.position.x = 8.5
+    spypose.pose.pose.position.y = sentryy
     
     while not GameOver:
+        playerx,playery,playertheta = getMsgInfo(playerpose)
+        playerx = round(playerx*2)/2
+        playery = round(playery*2)/2
         
         sys.stdout.write('Use WASD to move (q to QUIT)')
         sys.stdout.write('\n')
         sys.stdout.write('Insert Your Next Action: ')
         usin= str(input())
         sys.stdout.write('\n')
-        caught = ' '
         
-        sub = rospy.Subscriber("Status",String,callback)
-        
-
         if usin.lower() =='w':
-            pass
-        elif usin.lower()=='a':
-            pass
+            playerx += 1
+            if [playerx-0.5,playery-0.5] in obs_points:
+                print('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='s':
-            pass
+            playerx -= 1
+            if [playerx-0.5,playery-0.5] in obs_points or playerx+0.5 <= 0:
+                print('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
+        elif usin.lower()=='a':
+            playery += 1
+            if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 > 8:
+                print('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='d':
-            pass
+            playery -= 1
+            if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 <= 0:
+                print('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='q':
             GameOver=True
-        elif caught == "Caught!":
+            continue
+        else:
+            sys.stdout.write('Invalid Input, please try again')
+            continue
+        
+        
+        
+        print('Player moving to (',playery+0.5,',',playerx+0.5,')')
+        setPlayerTwist(playerpub,playergoal)
+    
+        spypossiblepos = [0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5]
+        spygoal = Point(8.5,random.choice(spypossiblepos),0)
+        print('Sentry moving to (',spygoal.y+0.5,', 9.0 )')
+        setSpyTwist(spypub,spygoal)
+        
+        turn()
+        sub = rospy.Subscriber("/Status",String,callback)
+        
+        
+        if round(playerx*2)/2+0.5 == 9:
+            print('You have skadoodled!')
+            GameOver=True
+            continue
+        elif caught in "Caught!":
             sys.stdout.write('You have been skadoodled!')
             sys.stdout.write('\n')
             sys.stdout.write('Game Over')
             sys.stdout.write('\n')
             GameOver=True
-        else:
-            sys.stdout.write('Invalid Input, please try again')
             continue
-            
-        turn()
+        
+        
         # Outside of the if statements we run the sentry and player at the same time 
         
         # Finally we check to see if player and spy are in the same row, if they are then check if there is an obstacle 
