@@ -9,51 +9,7 @@ import numpy as np
 import roslaunch 
 import sys
 import rospkg
-
-
-
-def newOdom (msg):
-    global x
-    global y
-    global theta
-    
-    x=msg.pose.pose.position.x
-    y=msg.pose.pose.position.y
-    
-    rot_q=msg.pose.pose.orientation 
-    (roll, pitch, theta)=euler_from_quaternion([rot_q.x,rot_q.y,rot_q.z,rot_q.w])
-    
-
-def goTo(nx,ny):
-    global x
-    global y
-    global theta
-    
-    goal=Point ()
-    goal.x=nx
-    goal.y=ny
-    
-    while not rospy.is_shutdown() and not(theta==0 and goal.x==x and goal.y==y):
-        inc_x=goal.x-x
-        inc_y=goal.y-y
-        
-        angle_to_goal=atan2(inc_y, inc_x)
-        
-        if abs(angle_to_goal-theta)>0:
-            speed.linear.x=0.0
-            speed.angular.z=0.3
-        elif (abs(inc_x) and abs(inc_y))>0:
-            speed.linear.x=0.5
-            speed.angukar.z=0.0
-        elif abs(theta)>0:
-            speed.linear.x=0.0
-            speed.angular.z=0.3
-        else:
-            speed.linear.x=0.0
-            speed.angular.z=0.0
-            
-        pub.publish(speed)
-        r.sleep()
+   
             
 def main():
     rospack = rospkg.RosPack()
@@ -71,10 +27,10 @@ def main():
     current_sentry=[sentryx, sentryy]
 
     obs_points=[]
-    a=[1,2,3,4,5,6,7]
-    b=[0,1,2,3,4,5,6,7]
+    a=[1,2,3,4,5,6,7] # x-values
+    b=[0,1,2,3,4,5,6,7] # y-values
 
-    counter=0
+    counter=1
     
 
     # To initialize the position of both robots
@@ -96,25 +52,29 @@ def main():
     sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
     sys.stdout.write('\n')
     cli_args1=['my_wall_urdf','wall.launch']
-    while counter<5:
+    while counter<6:
         x=np.random.choice(a)
         y=np.random.choice(b)
         # Repeat the process 
         launch_path1 = rospack.get_path('my_wall_urdf')+'/wall.launch'
-        arg_1= 'x:='+str(x)
-        arg_2= 'y:='+str(y)
-        arg_3= 'model:=wall'+str(counter)       
-        cli_args1=[arg_1,arg_2,arg_3]
-        roslaunch_args1=cli_args1[1:]
-        roslaunch_file1=roslaunch.rlutil.resolve_launch_arguments(cli_args1)[0]
-        launch_files.append((roslaunch_file1,roslaunch_args1))
+        arg_1= 'x'+str(counter)+':='+str(x)
+        arg_2= 'y'+str(counter)+':='+str(y)
+        arg_3= 'model'+str(counter)+':=wall'+str(counter)       
+        cli_args1.append(arg_1)
+        cli_args1.append(arg_2)
+        cli_args1.append(arg_3)
+        a.remove(x)
+        b.remove(y)
         counter+=1
             
+    roslaunch_args1=cli_args1[2:]
+    roslaunch_file1=roslaunch.rlutil.resolve_launch_arguments(cli_args1)[0]
+    launch_files.append((roslaunch_file1,roslaunch_args1))
     #sys.stdout.write(launch_files)
     
     parent = roslaunch.parent.ROSLaunchParent(uuid,launch_files)
     parent.start()
-    
+
     sys.stdout.write('Good luck')
     usin = 'waiting'
     while not GameOver:
