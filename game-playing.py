@@ -8,6 +8,8 @@ from math import atan2
 import numpy as np
 import roslaunch 
 import sys
+import rospkg
+
 
 
 def newOdom (msg):
@@ -21,14 +23,6 @@ def newOdom (msg):
     rot_q=msg.pose.pose.orientation 
     (roll, pitch, theta)=euler_from_quaternion([rot_q.x,rot_q.y,rot_q.z,rot_q.w])
     
-rospy.init_node("speed_controller")
-
-sub = rospy.Subscriber("/odometry/filtered", Odometry, newOdom)
-pub = rospy.Publisher("/cmd_vel", Twist,queue_size=1)
-
-speed = Twist()
-
-r=rospy.Rate(4)
 
 def goTo(nx,ny):
     global x
@@ -62,14 +56,16 @@ def goTo(nx,ny):
         r.sleep()
             
 def main():
+    rospack = rospkg.RosPack()
+    
     # To randomize the starting position of both robots
     GameOver=False
-    y1=np.randint(8)
+    y1=np.random.randint(8)
     playery=0.5+y1
     playerx=0.5
     current_player=[playerx,playery]
 
-    y2=np.randint(8)
+    y2=np.random.randint(8)
     sentryy=0.5+y2
     sentryx=8.5
     current_sentry=[sentryx, sentryy]
@@ -79,48 +75,46 @@ def main():
     b=[0,1,2,3,4,5,6,7]
 
     counter=0
+    
 
     # To initialize the position of both robots
-    arg_1 = 'first_tb3_y_pos:='+playery
-    arg_2 = 'second_tb3_y_pos:= '+sentryy
+    arg_1 = 'first_tb3_y_pos:='+str(playery)
+    arg_2 = 'second_tb3_y_pos:= '+str(sentryy)
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-
-    cli_args = ['turtlebot3_gazebo', 'SPYxROS.launch', arg_1,arg_2]
-    roslaunch_args=cli_args[2:]
-    roslaunch_file=[(roslaunch.rutil.resolve_launch_arguments(cli_args)[0], roslaunch_args)]
-
-    parent = roslaunch.parent.ROSLaunchParent(uuid,roslaunch_file)
-    parent.start()
     
-    # Print statements to the terminal to explain
+    launch_path = rospack.get_path('turtlebot3_gazebo')+'/SPYxROS.launch'
+
+    cli_args = ['turtlebot3_gazebo','SPYxROS.launch', arg_1,arg_2]
+    roslaunch_args=cli_args[1:]
+    roslaunch_file=roslaunch.rlutil.resolve_launch_arguments(cli_args)[0]
+    launch_files=[(roslaunch_file,roslaunch_args)]
+    
     sys.stdout.write("Welcome to the game!")
     sys.stdout.write('\n')
     sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
     sys.stdout.write('\n')
-    sys.stdout.write('Enter the number of obstacles you want (int, recommend 4): ')
-    obs = int(input())
-    sys.stdout.write('\n')
-    if obs==4:
-        sys.stdout.write('Wow, are you really gonna listen to me?')
-        sys.stdout.write('\n')
-    while counter<obs:
+    cli_args1=['my_wall_urdf','wall.launch']
+    while counter<5:
         x=np.random.choice(a)
         y=np.random.choice(b)
-        if [x,y] not in obs_points:
-            # Repeat the process 
-            arg_1= 'x:='+x
-            arg_2= 'y:='+y
-            arg_3= 'model:=wall'+counter
-            uuid = roslaunch.rutil.get_or_generate_uuid(None, False)
-            roslaunch.configure_logging(uuid)
-            cli_args=['my_wall_urdf','wall.launch',arg_1,arg_2,arg_3]
-            roslaunch_args=cli_args[2:]
-            roslaunch_file=[roslaunch.rutil.resolve_launch_arguments(cli_args)[0],roslaunch_args]
-            parent=roslaunch.parent.ROSLaunchParent(uuid,roslaunch_file)
-            parent.start()
-            counter+=1
+        # Repeat the process 
+        launch_path1 = rospack.get_path('my_wall_urdf')+'/wall.launch'
+        arg_1= 'x:='+str(x)
+        arg_2= 'y:='+str(y)
+        arg_3= 'model:=wall'+str(counter)       
+        cli_args1=[arg_1,arg_2,arg_3]
+        roslaunch_args1=cli_args1[1:]
+        roslaunch_file1=roslaunch.rlutil.resolve_launch_arguments(cli_args1)[0]
+        launch_files.append((roslaunch_file1,roslaunch_args1))
+        counter+=1
+            
+    #sys.stdout.write(launch_files)
+    
+    parent = roslaunch.parent.ROSLaunchParent(uuid,launch_files)
+    parent.start()
+    
     sys.stdout.write('Good luck')
     usin = 'waiting'
     while not GameOver:
@@ -155,7 +149,9 @@ def main():
         
         
         
-        
+if __name__ == '__main__':
+    main()
+    
         
         
         
