@@ -14,7 +14,9 @@ To run our code and have you own working ROS game follow these simple instructio
   6. Go into your src folder and navigate to src/turtlebot3_simulations/turtlebot3_gazebo:
   
       a. Place the SPYxROS.launch file in the launch folder
+      
       b. Place SPYxROS.world file in the worlds folder
+      
       c. Navigate to your models folder and place the playboard folder inside
       
   7. Navigate back to your catkin workspace/src folder
