@@ -39,7 +39,8 @@ def getPlayerMsg(msg):
     global playerpose
     playerpose = msg
 
-def getObMsg(msg)
+def getObMsg(msg):
+    global obpose
     obpose.append(msg)
 
 def getMsgInfo(msg):
@@ -160,6 +161,7 @@ def detection(grid):
 
 def turn():
     # generates outcomes at the end of a turn in the game
+    global obpose
     rospy.init_node('Vision')
     pub = rospy.Publisher('Status', String, queue_size=10)
     rate = rospy.Rate(10) 
