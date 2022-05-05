@@ -13,7 +13,6 @@ import rospy
 from std_msgs.msg import String
 from turtle import position
 from nav_msgs.msg import Odometry
-from ast import List
 
 from gazebo_msgs.msg import ModelStates
 global obpose
@@ -158,12 +157,13 @@ def turn():
     pub = rospy.Publisher('Status', String, queue_size=10)
     rate = rospy.Rate(10) 
     # 10hz, rate at which messages are published 
-    while obpose < 10:
-        obsub = rospy.Subscriber("Obstacle",Int32,getObMsg)
+    obpose = []
+    while len(obpose) < 10:
+        obsub = rospy.Subscriber("Obstacle",np.Int32,getObMsg)
         grid = gen_grid(8)
         playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
         spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
-        obpose = []
+        
         grid = set_grid(grid)
         outcome = detection(grid)
         rospy.loginfo(outcome) 
@@ -215,7 +215,7 @@ def main():
     sys.stdout.write('\n')
     cli_args1=['my_wall_urdf','wall.launch']
     
-    pub = rospy.Publisher("Obstacle",List, queue_size=10)
+    pub = rospy.Publisher("Obstacle",np.Int32, queue_size=10)
     while counter<6:
         x=np.random.choice(a)
         y=np.random.choice(b)
@@ -230,7 +230,7 @@ def main():
         b.remove(y)
         obs_points.append([x,y])
         counter+=1
-        pub.publish([x,y])
+        pub.publish(x,y)
         
             
     roslaunch_args1=cli_args1[2:]
