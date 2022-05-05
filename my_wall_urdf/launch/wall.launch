@@ -1,11 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-   <arg name="model" default="wall"/> 
-   <arg name="x" default="4"/>
-   <arg name="y" default="5"/>
-   <arg name="z" default="0.5"/>
+   <arg name="model1" default="wall1"/> 
+   <arg name="model2" default="wall2"/> 
+   <arg name="model3" default="wall3"/> 
+   <arg name="model4" default="wall4"/> 
+   <arg name="model5" default="wall5"/> 
+  
    
-   <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf"/> 
+   <arg name="x1" default="4"/>
+   <arg name="y1" default="5"/>
+   <arg name="z1" default="0.5"/>
    
-   <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -model $(arg model)" respawn="false" output="screen"/>
+   <arg name="x2" default="4"/>
+   <arg name="y2" default="5"/>
+   <arg name="z2" default="0.5"/>
+   
+   <arg name="x3" default="4"/>
+   <arg name="y3" default="5"/>
+   <arg name="z3" default="0.5"/>
+   
+   <arg name="x4" default="4"/>
+   <arg name="y4" default="5"/>
+   <arg name="z4" default="0.5"/>
+   
+   <arg name="x5" default="4"/>
+   <arg name="y5" default="5"/>
+   <arg name="z5" default="0.5"/>
+   
+   
+   <group ns = "$(arg model1)">
+      <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf" />
+    
+      <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg model1) -x $(arg x1) -y $(arg y1) -z $(arg z1) -param robot_description" respawn="false" output="screen"/>
+  </group>
+   
+   <group ns = "$(arg model2)">
+      <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf" />
+    
+      <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg model2) -x $(arg x2) -y $(arg y2) -z $(arg z2) -param robot_description" respawn="false" output="screen"/>
+  </group>
+  
+  <group ns = "$(arg model3)">
+      <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf" />
+    
+      <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg model3) -x $(arg x3) -y $(arg y3) -z $(arg z3) -param robot_description" respawn="false" output="screen"/>
+  </group>
+  
+  <group ns = "$(arg model4)">
+      <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf" />
+    
+      <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg model4) -x $(arg x4) -y $(arg y4) -z $(arg z4) -param robot_description" respawn="false" output="screen"/>
+  </group>
+  
+  <group ns = "$(arg model5)">
+      <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf" />
+    
+      <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg model5) -x $(arg x5) -y $(arg y5) -z $(arg z5) -param robot_description" respawn="false" output="screen"/>
+  </group>
+   
 </launch> 
