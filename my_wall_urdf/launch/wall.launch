@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+   <arg name="model" default="wall"/> 
+   <arg name="x" default="4"/>
+   <arg name="y" default="5"/>
+   <arg name="z" default="0.5"/>
+   
+   <param name="robot_description" command="cat $(find my_wall_urdf)/urdf/wall.urdf"/> 
+   
+   <node name="spawn_robot_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -model $(arg model)" respawn="false" output="screen"/>
+</launch> 
