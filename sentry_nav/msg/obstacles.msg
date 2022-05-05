@@ -1,1 +1,2 @@
-int32[] position
+int32 x
+int32 y
