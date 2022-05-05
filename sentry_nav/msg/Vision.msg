@@ -1,1 +1,1 @@
-String Status
+string Status
