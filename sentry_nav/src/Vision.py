@@ -162,6 +162,7 @@ def detection(grid):
 def turn():
     # generates outcomes at the end of a turn in the game
     global obpose
+    obpose = []
     rospy.init_node('Vision')
     pub = rospy.Publisher('Status', String, queue_size=10)
     rate = rospy.Rate(10) 
@@ -172,7 +173,6 @@ def turn():
         grid = gen_grid(8)
         playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
         spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
-        obpose = []
         grid = set_grid(grid)
         outcome = detection(grid)
         rospy.loginfo(outcome) 
