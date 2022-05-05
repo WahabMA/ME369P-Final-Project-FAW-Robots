@@ -8,20 +8,21 @@ from math import atan2
 import numpy as np
 import roslaunch 
 import sys
-import rospkg
+
    
             
 def main():
-    rospack = rospkg.RosPack()
     
     # To randomize the starting position of both robots
     GameOver=False
-    y1=np.random.randint(8)
+    col = [0,1,2,3,4,5,6,7]
+    y1=np.random.choice(col)
     playery=0.5+y1
+    col.remove(y1)
     playerx=0.5
     current_player=[playerx,playery]
 
-    y2=np.random.randint(8)
+    y2=np.random.choice(col)
     sentryy=0.5+y2
     sentryx=8.5
     current_sentry=[sentryx, sentryy]
@@ -39,8 +40,6 @@ def main():
 
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
-    
-    launch_path = rospack.get_path('turtlebot3_gazebo')+'/SPYxROS.launch'
 
     cli_args = ['turtlebot3_gazebo','SPYxROS.launch', arg_1,arg_2]
     roslaunch_args=cli_args[1:]
@@ -56,7 +55,6 @@ def main():
         x=np.random.choice(a)
         y=np.random.choice(b)
         # Repeat the process 
-        launch_path1 = rospack.get_path('my_wall_urdf')+'/wall.launch'
         arg_1= 'x'+str(counter)+':='+str(x)
         arg_2= 'y'+str(counter)+':='+str(y)
         arg_3= 'model'+str(counter)+':=wall'+str(counter)       
@@ -76,13 +74,14 @@ def main():
     parent.start()
 
     sys.stdout.write('Good luck')
+    sys.stdout.write('\n')
     usin = 'waiting'
     while not GameOver:
         sys.stdout.write('Use WASD to move (q to QUIT)')
         sys.stdout.write('\n')
         sys.stdout.write('Insert Your Next Action: ')
         usin= str(input())
-        sys.stdout.write('\m')
+        sys.stdout.write('\n')
         # Add logic here to get the current position of the player and the obstacles
         
         # Inside the if statements we run logic to see if the player can move there and then set up the motion
