@@ -8,8 +8,82 @@ from math import atan2
 import numpy as np
 import roslaunch 
 import sys
+import random
 
-   
+spypose = Odometry()
+playerpose = Odometry()
+spyvel = Twist()
+playervel = Twist()
+
+def getSpyMsg(msg):
+    global spypose
+    spypose = msg
+    
+def getPlayerMsg(msg):
+    global playerpose
+    playerpose = msg
+
+def getMsgInfo(msg):
+    x = msg.pose.pose.position.x
+    y = msg.pose.pose.position.y
+    
+    rot_q = msg.pose.pose.orientation
+    roll,pitch,theta = euler_from_quaternion([rot_q.x,rot_q.y,rot_q.z,rot_q.w])
+    return x,y,theta
+
+def setSpyTwist(pub,goal):
+    inc_x = 0
+    inc_y = 0
+    vel = Twist()
+    while not(0 < abs(inc_x) < 0.1) or not(0 < abs(inc_y) < 0.1):
+        x,y,theta = getMsgInfo(spypose)
+        # print(x,y)
+        inc_x = goal.x - x
+        inc_y = goal.y - y
+        angle_to_goal = atan2(inc_y,inc_x)
+        
+        if 0 < abs(inc_x) < 0.1 and 0 < abs(inc_y) < 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.0
+        elif angle_to_goal - theta > 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.2
+        elif angle_to_goal - theta < -0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = -0.2
+        else:
+            vel.linear.x = 0.3
+            vel.angular.z = 0.0
+        pub.publish(vel)
+        r = rospy.Rate(50)
+        r.sleep()
+        
+def setPlayerTwist(pub,goal):
+    inc_x = 0
+    inc_y = 0
+    vel = Twist()
+    while not(0 < abs(inc_x) < 0.1) or not(0 < abs(inc_y) < 0.1):
+        x,y,theta = getMsgInfo(playerpose)
+        # print(x,y)
+        inc_x = goal.x - x
+        inc_y = goal.y - y
+        angle_to_goal = atan2(inc_y,inc_x)
+        
+        if 0 < abs(inc_x) < 0.1 and 0 < abs(inc_y) < 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.0
+        elif angle_to_goal - theta > 0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = 0.2
+        elif angle_to_goal - theta < -0.1:
+            vel.linear.x = 0.0
+            vel.angular.z = -0.2
+        else:
+            vel.linear.x = 0.3
+            vel.angular.z = 0.0
+        pub.publish(vel)
+        r = rospy.Rate(50)
+        r.sleep()
             
 def main():
     
@@ -46,10 +120,7 @@ def main():
     roslaunch_file=roslaunch.rlutil.resolve_launch_arguments(cli_args)[0]
     launch_files=[(roslaunch_file,roslaunch_args)]
     
-    sys.stdout.write("Welcome to the game!")
-    sys.stdout.write('\n')
-    sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
-    sys.stdout.write('\n')
+    
     cli_args1=['my_wall_urdf','wall.launch']
     while counter<6:
         x=np.random.choice(a)
@@ -63,6 +134,7 @@ def main():
         cli_args1.append(arg_3)
         a.remove(x)
         b.remove(y)
+        obs_points.append([x,y])
         counter+=1
             
     roslaunch_args1=cli_args1[2:]
@@ -73,9 +145,29 @@ def main():
     parent = roslaunch.parent.ROSLaunchParent(uuid,launch_files)
     parent.start()
 
+    
+    usin = 'waiting'
+    
+    rospy.init_node('main_node')
+    # initializing publishers and subscribers
+    spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
+    spypub = rospy.Publisher('/spy/cmd_vel',Twist,queue_size=1)
+    playersub = rospy.Subscriber('/player/odom',Odometry,getPlayerMsg)
+    playerpub = rospy.Publisher('/player/cmd_vel',Twist,queue_size=1)
+    # initialize pose and twist
+    
+    playerpose.pose.pose.position.x = 0.5
+    playerpose.pose.pose.position.y = playery
+    spypose.pose.pose.position.x = 8.5
+    spypose.pose.pose.position.y = sentryy
+    
+    sys.stdout.write("Welcome to the game!")
+    sys.stdout.write('\n')
+    sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
+    sys.stdout.write('\n')
     sys.stdout.write('Good luck')
     sys.stdout.write('\n')
-    usin = 'waiting'
+    
     while not GameOver:
         sys.stdout.write('Use WASD to move (q to QUIT)')
         sys.stdout.write('\n')
@@ -83,23 +175,47 @@ def main():
         usin= str(input())
         sys.stdout.write('\n')
         # Add logic here to get the current position of the player and the obstacles
-        
+        playerx,playery,playertheta = getMsgInfo(playerpose)
+        playerx = round(playerx*2)/2
+        playery = round(playery*2)/2
         # Inside the if statements we run logic to see if the player can move there and then set up the motion
         if usin.lower() =='w':
-            pass
-        elif usin.lower()=='a':
-            pass
+            playerx += 1
+            if [playerx-0.5,playery-0.5] in obs_points:
+                sys.stdout.write('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='s':
-            pass
+            playerx -= 1
+            if [playerx-0.5,playery-0.5] in obs_points or playerx+0.5 <= 0:
+                sys.stdout.write('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='d':
-            pass
+            playery -= 1
+            if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 <= 0:
+                sys.stdout.write('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
+        elif usin.lower()=='a':
+            playery += 1
+            if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 >= 8:
+                sys.stdout.write('Invalid Input, please try again')
+                continue
+            playergoal = Point(playerx,playery,0)
         elif usin.lower()=='q':
             GameOver=True
+            continue
         else:
             sys.stdout.write('Invalid Input, please try again')
             continue
-        # Outside of the if statements we run the sentry and player at the same time 
-        
+        # Outside of the if statements we run the sentry and player at the same time (
+        print('Player moving to (',playerx+0.5,',',playery+0.5,')')
+        setPlayerTwist(playerpub,playergoal)
+        spypossiblepos = [0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5] 
+        spygoal = Point(8.5,random.choice(spypossiblepos),0)
+        print('Sentry moving to (',9,',',round(spygoal.y+0.5),')')
+        setSpyTwist(spypub,spygoal)
         # Finally we check to see if player and spy are in the same row, if they are then check if there is an obstacle 
         # between them, if not, the player dies
         
