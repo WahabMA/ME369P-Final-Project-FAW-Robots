@@ -11,20 +11,25 @@ import numpy as np
 import roslaunch 
 import sys
 
+
+# models in Gazebo give information as an Odometry object, used for position and orientation data
 spypose = Odometry()
 playerpose = Odometry()
 obs_points=[]
 caught = 'dummy'
 
 def getSpyMsg(msg):
+    # call back function for spy subscriber
     global spypose
     spypose = msg
     
 def getPlayerMsg(msg):
     global playerpose
+    # callback function for player subscriber
     playerpose = msg
     
 def getMsgInfo(msg):
+    # extract position and rotation information from message
     x = msg.pose.pose.position.x
     y = msg.pose.pose.position.y
     
@@ -33,6 +38,7 @@ def getMsgInfo(msg):
     return x,y,theta
         
 def setSpyTwist(pub,goal):
+    # calculates and publishes spy velocity as twist so it reaches its goal
     inc_x = 0
     inc_y = 0
     vel = Twist()
@@ -58,6 +64,7 @@ def setSpyTwist(pub,goal):
         pub.publish(vel)
         
 def setPlayerTwist(pub,goal):
+    # calculates and and publishes player velocity as twist  so it reaches its goal
     inc_x = 0
     inc_y = 0
     vel = Twist()
@@ -83,12 +90,13 @@ def setPlayerTwist(pub,goal):
         pub.publish(vel)
 
 def gen_grid(size):
-    # creates blank grid as a list
+    # generates a size x size grid of zeros for game logic as a numpy array
     grid = np.zeros((size+1,size))
     return grid
     
 def set_grid(grid):
-    # get model names from gazebo
+    # populates the grid with model positions for game logic
+#    # get model names from gazebo
 #    rospy.wait_for_service('/gazebo/get_world_properties')
 #    try:
 #        gwp = rospy.ServiceProxy('/gazebo/get_world_properties')
@@ -107,8 +115,6 @@ def set_grid(grid):
 
 #    except rospy.ServiceException as e:
 #        rospy.loginfo("Service call failed: {0}".format(e))
-
-    # populates the grid with the model positions. Models need to be defined later
 
     # sentry model - first object in simulation
 #    sen_pos = get_pos(models(2),links(2)(0))
@@ -152,7 +158,7 @@ def set_grid(grid):
     return grid
 
 def detection(grid):
-    # checks if player is detected our not, should be run once per turn
+    # returns if player is detected or not by the sentry, run once per turn
     ob_x = []
     ob_y = []
     sen_x = -1
@@ -190,7 +196,7 @@ def detection(grid):
     return 'Unseen'
 
 def turn():
-    # generates outcomes at the end of a turn in the game
+    # generates outcomes at the end of a turn in the game. Publishes outcome of turn
     # rospy.init_node('Vision')
     pub = rospy.Publisher('/Status', String, queue_size=10,latch=True)
     rate = rospy.Rate(10) 
@@ -206,10 +212,13 @@ def turn():
     rate.sleep()
 
 def callback(data):
+    # callback function for status subscriber
     global caught
     caught = data.data
             
 def main():
+    
+    # main function that runs all game logic
     
     # To randomize the starting position of both robots
     GameOver=False
@@ -264,7 +273,7 @@ def main():
         obs_points.append([x,y])
         counter+=1
         
-            
+    # launches world in Gazebo        
     roslaunch_args1=cli_args1[2:]
     roslaunch_file1=roslaunch.rlutil.resolve_launch_arguments(cli_args1)[0]
     launch_files.append((roslaunch_file1,roslaunch_args1))
@@ -291,6 +300,7 @@ def main():
     spypose.pose.pose.position.x = 8.5
     spypose.pose.pose.position.y = sentryy
     
+    # while loop for turn to turn gameplay. Takes player input and calculates full turn. Ends once player has been caught
     while not GameOver:
         playerx,playery,playertheta = getMsgInfo(playerpose)
         playerx = round(playerx*2)/2
