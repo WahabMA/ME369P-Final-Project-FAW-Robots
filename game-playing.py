@@ -25,6 +25,7 @@ def getSpyMsg(msg):
 def getPlayerMsg(msg):
     # callback function for player subscriber
     global playerpose
+    # callback function for player subscriber
     playerpose = msg
     
 def getMsgInfo(msg):
@@ -114,8 +115,6 @@ def set_grid(grid):
 
 #    except rospy.ServiceException as e:
 #        rospy.loginfo("Service call failed: {0}".format(e))
-
-    # populates the grid with the model positions. Models need to be defined later
 
     # sentry model - first object in simulation
 #    sen_pos = get_pos(models(2),links(2)(0))

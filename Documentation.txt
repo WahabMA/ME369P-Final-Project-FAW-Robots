@@ -1,0 +1,49 @@
+Project Proposal Notes and Requirements:
+  Gazebo simulation of a turn-based game
+  8 by 8 or 20 by 20 grid
+  You have to get from 1 side to the other
+    An agent randomly moves along the outside edge, and is able to look in the grid
+Sight is blocked by obstacles, which are randomly placed
+  Ever turn it can move
+  Can your player get one from one side to the other without getting seen
+  Use keyboard to control Turtlebot
+  
+	Stretch Goals: Automate Turtle
+  	Maybe toss in more than one sentry/agent	
+    Agent can look diagonal as well
+        
+Division of Work and Approach:
+  Wahab - Navigation of Sentry and Player
+  Felix - World generation and start up, Win Conditions
+  Andy - Vision of Sentry. Lose Conditions
+  
+  Turtlebot3 - Burger for both player and sentry
+  Grid - Coordinates in Gazebo used so each square is 1 by 1
+  Player can move one space at a time, Sentry can move to any space at top edge
+  Obstacles are randomly placed at beginning of game. Hiding behind them prevents sentry from seeing player
+  
+  Packages Utilized:
+    rospy
+    roslaunch
+    numpy
+    random
+    sys
+    from nav_msgs.msg import Odometry
+    from geometry_msgs.msg import Point, Twist
+    from std_msgs.msg import String
+    from tf.transformations import euler_from_quaternion
+    from math import atan2
+    
+Results:
+  Game was successfully created, hitting all of our requirements, but we were unable to achieve our stretch goals.
+  A custom world was built in Gazebo
+  The automated sentry is accurately able to detect if the player is in the same row, but sight is blocked by obstacles
+  
+  Possible Future Work:
+    Speed up robot movements without sacrificing accuracy
+    Add capabilities for multiple sentries
+    Automate player movements
+    Have game play in real time, using vision sensors built into the robots
+    
+Comments found in the game-playing.py file explain each function created
+Run game-playing.py to run game after following instructions in the README.md file
