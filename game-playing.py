@@ -11,20 +11,24 @@ import numpy as np
 import roslaunch 
 import sys
 
+# models in Gazebo give information as an Odometry object, used for position and orientation data
 spypose = Odometry()
 playerpose = Odometry()
 obs_points=[]
 caught = 'dummy'
 
 def getSpyMsg(msg):
+    # call back function for spy subscriber
     global spypose
     spypose = msg
     
 def getPlayerMsg(msg):
+    # callback function for player subscriber
     global playerpose
     playerpose = msg
     
 def getMsgInfo(msg):
+    # extract position and rotation information from message
     x = msg.pose.pose.position.x
     y = msg.pose.pose.position.y
     
@@ -33,6 +37,7 @@ def getMsgInfo(msg):
     return x,y,theta
         
 def setSpyTwist(pub,goal):
+    # calculates and publishes spy velocity as twist so it reaches its goal
     inc_x = 0
     inc_y = 0
     vel = Twist()
@@ -58,6 +63,7 @@ def setSpyTwist(pub,goal):
         pub.publish(vel)
         
 def setPlayerTwist(pub,goal):
+    # calculates and and publishes player velocity as twist  so it reaches its goal
     inc_x = 0
     inc_y = 0
     vel = Twist()
@@ -83,11 +89,12 @@ def setPlayerTwist(pub,goal):
         pub.publish(vel)
 
 def gen_grid(size):
-    # creates blank grid as a list
+    # generates a size x size grid of zeros for game logic as a numpy array
     grid = np.zeros((size+1,size))
     return grid
     
 def set_grid(grid):
+    # populates the grid with model positions for game logic
     # get model names from gazebo
 #    rospy.wait_for_service('/gazebo/get_world_properties')
 #    try:
@@ -152,7 +159,7 @@ def set_grid(grid):
     return grid
 
 def detection(grid):
-    # checks if player is detected our not, should be run once per turn
+    # returns if player is detected or not by the sentry, run once per turn
     ob_x = []
     ob_y = []
     sen_x = -1
@@ -190,7 +197,7 @@ def detection(grid):
     return 'Unseen'
 
 def turn():
-    # generates outcomes at the end of a turn in the game
+    # generates outcomes at the end of a turn in the game. Publishes outcome of turn
     # rospy.init_node('Vision')
     pub = rospy.Publisher('/Status', String, queue_size=10,latch=True)
     rate = rospy.Rate(10) 
@@ -206,10 +213,13 @@ def turn():
     rate.sleep()
 
 def callback(data):
+    # callback function for status subscriber
     global caught
     caught = data.data
             
 def main():
+    
+    # main function that runs all game logic
     
     # To randomize the starting position of both robots
     GameOver=False
@@ -244,10 +254,6 @@ def main():
     roslaunch_file=roslaunch.rlutil.resolve_launch_arguments(cli_args)[0]
     launch_files=[(roslaunch_file,roslaunch_args)]
     
-    sys.stdout.write("Welcome to the game!")
-    sys.stdout.write('\n')
-    sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
-    sys.stdout.write('\n')
     cli_args1=['my_wall_urdf','wall.launch']
     while counter<6:
         x=np.random.choice(a)
@@ -264,20 +270,20 @@ def main():
         obs_points.append([x,y])
         counter+=1
         
-            
+    # launches world in Gazebo   
     roslaunch_args1=cli_args1[2:]
     roslaunch_file1=roslaunch.rlutil.resolve_launch_arguments(cli_args1)[0]
     launch_files.append((roslaunch_file1,roslaunch_args1))
-    #sys.stdout.write(launch_files)
     
     parent = roslaunch.parent.ROSLaunchParent(uuid,launch_files)
     parent.start()
     
       
 
-    sys.stdout.write('Good luck')
-    sys.stdout.write('\n')
+    
     usin = 'waiting'
+    
+    # rospy stuff
     rospy.init_node('game')
     spysub = rospy.Subscriber("/spy/odom",Odometry,getSpyMsg)
     spypub = rospy.Publisher('/spy/cmd_vel',Twist,queue_size=1)
@@ -291,6 +297,14 @@ def main():
     spypose.pose.pose.position.x = 8.5
     spypose.pose.pose.position.y = sentryy
     
+    sys.stdout.write("Welcome to the game!")
+    sys.stdout.write('\n')
+    sys.stdout.write('Avoid being seen by the sentry! (obstacles help with hiding)')
+    sys.stdout.write('\n')
+    sys.stdout.write('Good luck')
+    sys.stdout.write('\n')
+    
+    # while loop for turn to turn gameplay. Takes player input and calculates full turn. Ends once player has been caught
     while not GameOver:
         playerx,playery,playertheta = getMsgInfo(playerpose)
         playerx = round(playerx*2)/2
@@ -305,50 +319,53 @@ def main():
         if usin.lower() =='w':
             playerx += 1
             if [playerx-0.5,playery-0.5] in obs_points:
-                print('Invalid Input, please try again')
+                print('Obstacle ahead! Watch out!')
                 continue
             playergoal = Point(playerx,playery,0)
         elif usin.lower()=='s':
             playerx -= 1
             if [playerx-0.5,playery-0.5] in obs_points or playerx+0.5 <= 0:
-                print('Invalid Input, please try again')
+                print('Obstacle or boundary ahead! Watch out!')
                 continue
             playergoal = Point(playerx,playery,0)
         elif usin.lower()=='a':
             playery += 1
             if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 > 8:
-                print('Invalid Input, please try again')
+                print('Obstacle or boundary ahead! Watch out!')
                 continue
             playergoal = Point(playerx,playery,0)
         elif usin.lower()=='d':
             playery -= 1
             if [playerx-0.5,playery-0.5] in obs_points or playery+0.5 <= 0:
-                print('Invalid Input, please try again')
+                print('Obstacle or boundary ahead! Watch out!')
                 continue
             playergoal = Point(playerx,playery,0)
         elif usin.lower()=='q':
             GameOver=True
             continue
         else:
-            sys.stdout.write('Invalid Input, please try again')
+            print('Invalid Input, please try again')
             continue
         
         
-        
+        # move player
         print('Player moving to (',playery+0.5,',',playerx+0.5,')')
         setPlayerTwist(playerpub,playergoal)
-    
+
+        # move sentry
         spypossiblepos = [0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5]
         spygoal = Point(8.5,random.choice(spypossiblepos),0)
         print('Sentry moving to (',spygoal.y+0.5,', 9.0 )')
         setSpyTwist(spypub,spygoal)
         
+        # end turn
         turn()
         sub = rospy.Subscriber("/Status",String,callback)
         
         
         if round(playerx*2)/2+0.5 == 9:
             print('You have skadoodled!')
+            print('You win! Yay!')
             GameOver=True
             continue
         elif caught in "Caught!":
@@ -359,11 +376,6 @@ def main():
             GameOver=True
             continue
         
-        
-        # Outside of the if statements we run the sentry and player at the same time 
-        
-        # Finally we check to see if player and spy are in the same row, if they are then check if there is an obstacle 
-        # between them, if not, the player dies
         
         
         
